@@ -28,7 +28,7 @@ class Stack
 
   def apply(template_file, parameters, disable_rollback = false,
             capabilities = [], notify = [], tags = [])
-    if template_file =~ %r{^https:\/\/s3\S+\.amazonaws\.com\/(.*)}
+    if template_file =~ %r{^https:\/\/s3\S*\.amazonaws\.com\/(.*)}
       template = template_file
     elsif template_file =~ %r{^http.*(.json)$/}
       begin
