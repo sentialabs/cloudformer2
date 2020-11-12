@@ -14,10 +14,16 @@ class Stack
   ].freeze
   END_STATES = SUCESS_STATES + FAILURE_STATES
 
+  BILLING_COSTCENTER = ENV["BILLING_COSTCENTER"]
+  BILLING_STATEMENTOFWORK = ENV["BILLING_STATEMENTOFWORK"]
+  BILLING_SERVICELEVEL = ENV["BILLING_SERVICELEVEL"]
+  BILLING_BILLINGCODE = ENV["BILLING_BILLINGCODE"]
+
   # WAITING_STATES = ["CREATE_IN_PROGRESS","DELETE_IN_PROGRESS","ROLLBACK_IN_PROGRESS","UPDATE_COMPLETE_CLEANUP_IN_PROGRESS","UPDATE_IN_PROGRESS","UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS","UPDATE_ROLLBACK_IN_PROGRESS"]
   def initialize(stack_name)
     @name = stack_name
     @cf = AWS::CloudFormation.new
+    @stackv2 = Aws::CloudFormation::Stack.new(name)
     @stack = @cf.stacks[name]
     @ec2 = AWS::EC2.new
   end
@@ -49,7 +55,7 @@ class Stack
     pending_operations = false
     begin
       if deployed
-        pending_operations = update(template, parameters, capabilities)
+        pending_operations = update_v2(template, parameters, capabilities, tags)
       else
         pending_operations = create(template, parameters, disable_rollback, capabilities, notify, tags)
       end
@@ -125,6 +131,43 @@ class Stack
       "valid" => response[:code].nil?,
       "response" => response
     }
+  end
+
+  def update_v2(template, parameters, capabilities, tags)
+    @stackv2.update({
+      :template_url => template,
+      :parameters => parameters,
+      :capabilities => capabilities,
+      :tags => [
+        {
+          key: "costCenter",
+          value: get_tag("BILLING_COSTCENTER")
+        },
+        {
+          key: "statementOfWork",
+          value: get_tag("BILLING_STATEMENTOFWORK")
+        },
+        {
+          key: "serviceLevel",
+          value: get_tag("BILLING_SERVICELEVEL")
+        },
+        {
+          key: "billingCode",
+          value: get_tag("BILLING_BILLINGCODE")
+        }
+
+      ]
+    })
+    return true
+  end
+
+  def get_tag(tag)
+    puts "get tag"
+    if (ENV[tag]).nil?
+      return "-"
+    else
+      return ENV[tag]
+    end
   end
 
   private
